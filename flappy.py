@@ -17,7 +17,7 @@ class Bird :
     image = pygame.image.load('bird1.png')
     velocity = 0
     distance = 0
-    acceleration = 0.6
+    acceleration = 0.9
     def __init__(self,x,y):
         self.x = x
         self.y = y
@@ -25,15 +25,16 @@ class Bird :
         self.score = 0
         self.entered = False
     def jump(self):
-        self.move_along_x =0
-        self.velocity=-2
+        #self.move_along_x =0
+        self.velocity=-10
 
     def move(self):
-        self.move_along_x+=0.5
-        self.distance = self.velocity*self.move_along_x*(0.5) + (1/8)*self.acceleration*self.move_along_x**2
-        if self.distance>10 :
-            self.distance=10
-        self.y+=self.distance
+        #self.move_along_x+=0.5
+        #self.distance = self.velocity*self.move_along_x*(0.5) + (1/8)*self.acceleration*self.move_along_x**2 
+        #if self.distance>10 :
+        #    self.distance=10
+        self.velocity+=self.acceleration
+        self.y+=self.velocity
     def display(self,screen):
         #self.text_surface = FONT.render("Score : "+str(self.score),1,(255,255,255))
         screen.blit(self.image,(self.x,self.y))
@@ -45,7 +46,7 @@ class Bird :
 class Pipe :
     pipe1 = pygame.image.load('pipe.png')
     pipe2 = pygame.transform.rotate(pipe1,180)
-    gap = 100
+    gap = 90
     def __init__(self,x):
         self.x = x
         self.y = random.randrange(200,375)
@@ -116,19 +117,19 @@ def eval_genome(genomes,config) :
         for x ,bird in enumerate(birds):
             ge[x].fitness+=0.1
             bird.move()
-            output = nets[birds.index(bird)].activate((bird.y,abs(bird.y-pipe_list[pip_index].y)))
-            if output[0] >0.5 :
+            output = nets[birds.index(bird)].activate((bird.y,abs(bird.y-pipe_list[pip_index].y),abs(bird.y-pipe_list[pip_index].y+pipe_list[pip_index].gap)))
+            if output[0] >0 :
                 bird.jump()
         for bird in birds :
-            if bird.entered==False :
-                if pipe_list[0].colloid(bird) :
-                    ge[birds.index(bird)].fitness-=0.5
-                    nets.pop(birds.index(bird))
-                    ge.pop(birds.index(bird))
-                    birds.pop(birds.index(bird))
-                    continue
-            if bird.x+bird.image.get_width()/2>pipe_list[0].x :
-                bird.entered=True
+            #if bird.entered==False :
+            if pipe_list[pip_index].colloid(bird) :
+                ge[birds.index(bird)].fitness-=0.5
+                nets.pop(birds.index(bird))
+                ge.pop(birds.index(bird))
+                birds.pop(birds.index(bird))
+                continue
+            #if bird.x +bird.image.get_width()/2 >pipe_list[pip_index].x :
+            #    bird.entered=True
         s.blit(bg,(0,0))
         for i in range(2):
             pipe_list[i].display(s)
@@ -149,24 +150,22 @@ def eval_genome(genomes,config) :
                 bird.y=ground1.y-bird.image.get_height()
             if bird.y<0 :
                 bird.y=0
-            if bird.entered==True:
-                if bird.y+bird.image.get_height() > pipe_list[0].y :
-                    bird.y = pipe_list[0].y-bird.image.get_height()
-                elif bird.y < pipe_list[0].y-pipe_list[0].gap :
-                    bird.y += pipe_list[0].y-pipe_list[0].gap - bird.y
-            if bird.entered==True :
-                if pipe_list[0].passed(bird) :
-                    ge[birds.index(bird)].fitness+=2
+            #if bird.entered==True:
+            #    if bird.y+bird.image.get_height() > pipe_list[0].y :
+            #        bird.y = pipe_list[0].y-bird.image.get_height()
+            #    elif bird.y < pipe_list[0].y-pipe_list[0].gap :
+            #        bird.y += pipe_list[0].y-pipe_list[0].gap - bird.y
+            if pipe_list[pip_index].passed(bird) :
+                ge[birds.index(bird)].fitness+=0.5
                 
         max_score =0
         for bird in birds :
             if bird.score>max_score :
                 max_score=bird.score
             bird.display(s)
-        if max_score>400 :
-            return
-        s.blit(FONT.render("Score : "+str(max_score),1,(255,255,255)),(135,0))
+        s.blit(FONT.render(str(max_score),1,(255,255,255)),(230,0))
         s.blit(FONT.render("gen : "+str(gen),1,(255,255,255)),(0,0))
+        s.blit(FONT.render("Alive : "+str(len(birds)),1,(255,255,255)),(0,30))
         pygame.display.update()
         clock.tick(60)
     gen+=1
